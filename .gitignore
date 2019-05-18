@@ -5,3 +5,5 @@ coverage
 data
 Vagrantfile
 .vagrant
+/.idea
+*.iml
