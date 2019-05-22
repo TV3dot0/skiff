@@ -1,6 +1,6 @@
 'use strict'
 
-const debug = require('debug')('skiff.node')
+const debug = require('debug'); //('skiff.node')
 const merge = require('deepmerge')
 const EventEmitter = require('events')
 const async = require('async')
@@ -17,6 +17,8 @@ const Leveldown = require('./lib/leveldown')
 const Iterator = require('./lib/iterator')
 const defaultOptions = require('./lib/default-options')
 
+
+
 const importantStateEvents = [
   'warning',
   'new state',
@@ -25,34 +27,38 @@ const importantStateEvents = [
   'rpc latency',
   'joined',
   'left'
-]
+];
 
 class Shell extends EventEmitter {
 
   constructor (id, _options) {
-    super()
-    this.id = Address(id)
-    this._options = merge(defaultOptions, _options || {})
-    debug('creating node %s with peers %j', id, this._options.peers)
-    this._ownsNetwork = false
+    super();
+    this.setMaxListeners(200);
+    this.id = Address(id);
+    this._options = { ...defaultOptions, ...(_options || {}) };
+    //console.log('creating nodes with options', this._options);
+    this._ownsNetwork = false;
 
-    this._db = new DB(this._options.location, this.id, this._options.db, this._options.levelup)
+    //this._db = new DB(this._options.location, this.id, this._options.db, this._options.levelup)
+    this._db = new DB(this._options.location, this.id, this._options.db, this._options.levelup);
 
-    this._dispatcher = new IncomingDispatcher({id})
+    this._dispatcher = new IncomingDispatcher({id});
 
     const connections = {
       isConnectedTo: (addr) => this._connections.indexOf(addr) >= 0
-    }
+    };
     // connections
     this._connections = this._options.peers.filter(addr => addr !== id)
 
     this.on('connect', peer => {
+      console.log(id, 'connected to: ', peer);
       if (this._connections.indexOf(peer) < 0) {
         this._connections.push(peer)
       }
     })
 
     this.on('disconnect', peer => {
+      console.log(id, 'disconnected from: ', peer);
       this._connections = this._connections.filter(c => c !== peer)
     })
 
@@ -108,17 +114,17 @@ class Shell extends EventEmitter {
   // ------ Start and stop
 
   start (cb) {
-    debug('%s: start state is %s', this.id, this._startState)
+    console.log('%s: start state is %s', this.id, this._startState)
     if (this._startState === 'stopped') {
       this._startState = 'starting'
-      debug('starting node %s', this.id)
+      console.log('starting node %s', this.id)
       async.parallel(
         [
           this._startNetwork.bind(this),
           this._loadPersistedState.bind(this)
         ],
         err => {
-          debug('%s: done starting', this.id)
+          console.log('%s: done starting', this.id)
           if (err) {
             this._startState = 'stopped'
           } else {
@@ -190,8 +196,10 @@ class Shell extends EventEmitter {
   _loadPersistedState (cb) {
     this._db.load((err, results) => {
       if (err) {
+        console.log('error', err);
         cb(err)
       } else {
+        console.log('results', results);
         this._node._log.setEntries(results.log)
         if (results.meta.currentTerm) {
           this._node._setTerm(results.meta.currentTerm)
@@ -232,7 +240,7 @@ class Shell extends EventEmitter {
   // ------ Topology
 
   join (address, done) {
-    debug('%s: joining %s', this.id, address)
+    console.log('%s: joining %s', this.id, address)
     this.start(err => {
       if (err) {
         done(err)
@@ -243,7 +251,7 @@ class Shell extends EventEmitter {
   }
 
   leave (address, done) {
-    debug('%s: leaving %s', this.id, address)
+    console.log('%s: leaving %s', this.id, address)
     this.start(err => {
       if (err) {
         done(err)
@@ -274,25 +282,23 @@ class Shell extends EventEmitter {
 
   // ------- State
 
-  is (state) {
+  is(state) {
     return this._node.is(state)
   }
 
-  weaken (duration) {
+  weaken(duration) {
     this._node.weaken(duration)
   }
 
   // -------- Level*
 
-  leveldown () {
-    return new Leveldown(this)
+  leveldown() {
+    return new Leveldown(this);
   }
 
-  levelup (options) {
-    return Levelup(this.id, Object.assign({}, {
-      db: this.leveldown.bind(this),
-      valueEncoding: 'json'
-    }, options))
+  levelup(location, options, cb) {
+    const leveldown = this.leveldown();
+    return Levelup(leveldown, options, cb)
   }
 
   iterator (options) {
