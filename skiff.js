@@ -16,8 +16,7 @@ const DB = require('./lib/db')
 const Leveldown = require('./lib/leveldown')
 const Iterator = require('./lib/iterator')
 const defaultOptions = require('./lib/default-options')
-
-
+const encode = require('encoding-down')
 
 const importantStateEvents = [
   'warning',
@@ -298,7 +297,7 @@ class Shell extends EventEmitter {
 
   levelup(location, options, cb) {
     const leveldown = this.leveldown();
-    return Levelup(leveldown, options, cb)
+    return Levelup(encode(leveldown), options, cb)
   }
 
   iterator (options) {
