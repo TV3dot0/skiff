@@ -30,7 +30,7 @@ const importantStateEvents = [
 
 class Shell extends EventEmitter {
 
-  constructor (id, _options) {
+  constructor (id, _options, stateId) {
     super();
     this.setMaxListeners(200);
     this.id = Address(id);
@@ -38,8 +38,8 @@ class Shell extends EventEmitter {
     //console.log('creating nodes with options', this._options);
     this._ownsNetwork = false;
 
-    //this._db = new DB(this._options.location, this.id, this._options.db, this._options.levelup)
-    this._db = new DB(this._options.location, this.id, this._options.db, this._options.levelup);
+    //this._db = new DB(this._options.location, this.id, this._options.db, this._options.levelup);
+    this._db = new DB(this._options.location, stateId, this._options.db, this._options.levelup);
 
     this._dispatcher = new IncomingDispatcher({id});
 
@@ -67,7 +67,7 @@ class Shell extends EventEmitter {
       this._dispatcher,
       this._db,
       this.peers.bind(this),
-      this._options)
+      this._options, stateId)
 
     // propagate important events
     importantStateEvents.forEach(event => this._node.on(event, this.emit.bind(this, event)))
@@ -333,6 +333,6 @@ createNodeShell.createNetwork = function createNetwork (options) {
 
 module.exports = createNodeShell
 
-function createNodeShell (id, options) {
-  return new Shell(id, options)
+function createNodeShell (id, options, sid) {
+  return new Shell(id, options, sid)
 }
